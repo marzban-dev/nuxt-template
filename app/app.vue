@@ -17,17 +17,17 @@ useSeoMeta({
         initialScale: 1,
         maximumScale: 1,
         userScalable: "no",
-        width: "device-width"
-    }
+        width: "device-width",
+    },
 });
 
 useHead({
     htmlAttrs: {
         dir,
         lang,
-        class: ""
+        class: "",
     },
-    bodyAttrs: { class: "" }
+    bodyAttrs: { class: "" },
 });
 </script>
 
@@ -41,11 +41,11 @@ useHead({
             :toaster="{ position: 'top-center', progress: false, expand: false }"
             :tooltip="{ delayDuration: 0 }"
         >
-            <ApiLayerWrapper dir="ltr">
-                <AuthLayerWrapper>
-                    <NuxtPage />
-                </AuthLayerWrapper>
-            </ApiLayerWrapper>
+            <AuthLayerWrapper>
+                <NuxtPage />
+            </AuthLayerWrapper>
+
+            <VueQueryDevtools dir="rtl" />
         </UApp>
     </NuxtLayout>
 </template>
