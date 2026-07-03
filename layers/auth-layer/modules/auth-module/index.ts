@@ -18,7 +18,6 @@ type ModuleOptions = {
         verify: AuthEndpoint;
         logout: AuthEndpoint;
         profile: AuthEndpoint;
-        update?: AuthEndpoint;
     };
     /** In-app route the auth middleware redirects to when a guard fails. */
     signInPath: string;

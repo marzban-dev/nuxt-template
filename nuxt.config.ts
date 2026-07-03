@@ -39,10 +39,6 @@ export default defineNuxtConfig({
                 name: "",
                 path: "/user/token",
             },
-            update: {
-                name: "",
-                path: "/user/profile",
-            },
             verify: {
                 name: "",
                 path: "/user/verify",
