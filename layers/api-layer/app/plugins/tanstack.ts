@@ -1,8 +1,11 @@
-import type { DehydratedState, Mutation, Query, VueQueryPluginOptions } from "@tanstack/vue-query";
+import type { DehydratedState, VueQueryPluginOptions } from "@tanstack/vue-query";
 import { VueQueryPlugin, QueryClient, hydrate, dehydrate, QueryCache, MutationCache } from "@tanstack/vue-query";
 
 import { defineNuxtPlugin, useState } from "#imports";
 import { AxiosError } from "axios";
+
+/** Default time (ms) a query result is considered fresh before refetching. */
+const DEFAULT_STALE_TIME = 5000;
 
 export default defineNuxtPlugin({
     enforce: "pre",
@@ -11,34 +14,29 @@ export default defineNuxtPlugin({
 
         const vueQueryState = useState<DehydratedState | null>("vue-query");
 
-        const errorHandler = (errorData: {
-            error: ApiError;
-            query?: Query<unknown, unknown, unknown, readonly unknown[]>;
-            mutation?: Mutation<unknown, unknown, unknown, unknown>;
-        }) => {
-            if (import.meta.client && errorData.error instanceof AxiosError) {
-                if (errorData.error.status && errorData.error.status >= 400 && errorData.error.status <= 499) {
-                    if (appConfig.appApi?.errorCallback) {
-                        appConfig.appApi?.errorCallback(errorData);
-                    }
-                } else {
-                    if (appConfig.appApi?.unhandledErrorCallback) {
-                        appConfig.appApi?.unhandledErrorCallback();
-                    }
-                }
+        const handleError = (context: ApiErrorContext) => {
+            // Errors are only routed to the app callbacks on the client.
+            if (!import.meta.client || !(context.error instanceof AxiosError)) return;
+
+            const status = context.error.status ?? 0;
+
+            if (status >= 400 && status < 500) {
+                appConfig.appApi?.errorCallback?.(context);
+            } else {
+                appConfig.appApi?.unhandledErrorCallback?.();
             }
         };
 
         const queryClient = new QueryClient({
-            defaultOptions: { queries: { staleTime: 5000 } },
+            defaultOptions: { queries: { staleTime: DEFAULT_STALE_TIME } },
             queryCache: new QueryCache({
                 onError: (error, query) => {
-                    if (query.meta?.handleError) errorHandler({ error: error as ApiError, query });
+                    if (query.meta?.handleError) handleError({ error: error as ApiError, query });
                 },
             }),
             mutationCache: new MutationCache({
                 onError: (error, _variables, _context, mutation) => {
-                    if (mutation.meta?.handleError) errorHandler({ error: error as ApiError, mutation });
+                    if (mutation.meta?.handleError) handleError({ error: error as ApiError, mutation });
                 },
             }),
         });

@@ -12,13 +12,13 @@ const useVerify = () => {
     // state
 
     const { $axios: axios } = useNuxtApp();
-    const runtimeConfig = useRuntimeConfig();
-    const endpoint = runtimeConfig.public.authModule.endpoints.verify;
+    const { path } = useAuthEndpoints();
+    const { buildVerifyBody } = useAuthAdapters();
 
     // methods
 
     const handler = async (variables: VerifyRequest) => {
-        const { data } = await axios.post(endpoint, variables, {
+        const { data } = await axios.post(path("verify"), buildVerifyBody(variables.token), {
             authorization: false,
         });
 

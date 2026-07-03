@@ -1,27 +1,18 @@
-import type { Mutation, Query } from "@tanstack/vue-query";
+type AppApiConfig = {
+    /** Called for handled 4xx responses (queries/mutations with `meta.handleError`). */
+    errorCallback?: (errorData: ApiErrorContext) => void;
+    /** Called for any other failure (5xx, network, etc.). */
+    unhandledErrorCallback?: () => void;
+};
 
 export default defineAppConfig({});
 
 declare module "@nuxt/schema" {
     interface AppConfig {
-        appApi?: {
-            errorCallback?: (errorData: {
-                error: ApiError;
-                query?: Query<unknown, unknown, unknown, readonly unknown[]>;
-                mutation?: Mutation<unknown, unknown, unknown, unknown>;
-            }) => void;
-            unhandledErrorCallback?: () => void;
-        };
+        appApi?: AppApiConfig;
     }
 
     interface AppConfigInput {
-        appApi?: {
-            errorCallback?: (errorData: {
-                error: ApiError;
-                query?: Query<unknown, unknown, unknown, readonly unknown[]>;
-                mutation?: Mutation<unknown, unknown, unknown, unknown>;
-            }) => void;
-            unhandledErrorCallback?: () => void;
-        };
+        appApi?: AppApiConfig;
     }
 }

@@ -5,20 +5,20 @@ import { useMutation } from "@tanstack/vue-query";
 // types
 
 export type SignOutRequest = {
-    refresh_token: string;
+    refreshToken: string;
 };
 
 const useSignOut = () => {
     // state
 
     const { $axios: axios } = useNuxtApp();
-    const runtimeConfig = useRuntimeConfig();
-    const endpoint = runtimeConfig.public.authModule.endpoints.sign_out;
+    const { path } = useAuthEndpoints();
+    const { buildSignOutBody } = useAuthAdapters();
 
     // methods
 
     const handler = async (variables: SignOutRequest) => {
-        const { data } = await axios.post(endpoint, variables, {
+        const { data } = await axios.post(path("logout"), buildSignOutBody(variables.refreshToken), {
             authorization: true,
         });
 

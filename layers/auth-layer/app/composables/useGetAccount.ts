@@ -2,16 +2,11 @@
 
 import { useQuery } from "@tanstack/vue-query";
 
-// types
-
-export type GetAccountResponse = AccountProfile;
-
 const useGetAccount = () => {
     // state
 
     const { $axios: axios } = useNuxtApp();
-    const runtimeConfig = useRuntimeConfig();
-    const endpoint = runtimeConfig.public.authModule.endpoints.profile;
+    const { path } = useAuthEndpoints();
 
     const { token } = useAuth();
 
@@ -23,16 +18,16 @@ const useGetAccount = () => {
 
     // methods
 
-    const handler = async () => {
-        const { data } = await axios.post(endpoint, undefined, {
+    const handler = async (): Promise<AccountProfile> => {
+        const { data } = await axios.post(path("profile"), undefined, {
             authorization: true,
         });
 
         return data;
     };
 
-    return useQuery<GetAccountResponse, ApiError, unknown>({
-        queryKey: ["refresh-token"],
+    return useQuery<AccountProfile, ApiError>({
+        queryKey: ["account-profile"],
         queryFn: () => handler(),
         meta: { handleError: false },
         enabled: isEnabled,

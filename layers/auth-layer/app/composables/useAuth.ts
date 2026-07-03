@@ -3,25 +3,14 @@ import type { AxiosError } from "axios";
 const useAuth = () => {
     // state
 
+    const runtimeConfig = useRuntimeConfig();
+    const verifyStep = runtimeConfig.public.authModule.verifyStep;
+
     const { mutateAsync: refreshAuth } = useRefreshAuth();
     const { mutateAsync: verify } = useVerify();
     const { mutateAsync: signOut } = useSignOut();
 
-    const token = useCookie("token", {
-        maxAge: 60 * 60 * 24 * 30,
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        path: "/",
-        secure: true,
-        sameSite: "lax",
-    });
-
-    const refreshToken = useCookie("refresh-token", {
-        maxAge: 60 * 60 * 24 * 30,
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        path: "/",
-        secure: true,
-        sameSite: "lax",
-    });
+    const { token, refreshToken } = useAuthStorage();
 
     // methods
 
@@ -33,6 +22,11 @@ const useAuth = () => {
         refreshToken.value = newToken;
     };
 
+    const applyTokens = (tokens: AuthTokens) => {
+        updateToken(tokens.token);
+        if (tokens.refreshToken) updateRefreshToken(tokens.refreshToken);
+    };
+
     const logout = async (reload?: boolean) => {
         if (refreshToken.value) {
             const currentRefreshToken = refreshToken.value;
@@ -40,74 +34,46 @@ const useAuth = () => {
             token.value = undefined;
             refreshToken.value = undefined;
 
-            await signOut({ refresh_token: currentRefreshToken });
+            await signOut({ refreshToken: currentRefreshToken });
             if (reload) window.location.href = "/";
         }
     };
 
-    const checkAuth = async () => {
-        if (token.value) {
-            try {
-                await verify({
-                    token: token.value,
-                });
+    /** Attempt to renew the session from the refresh token; logs out on failure. */
+    const tryRefresh = async (): Promise<boolean> => {
+        if (!refreshToken.value) {
+            await logout();
+            return false;
+        }
 
-                return true;
-            } catch (e) {
-                const err = e as AxiosError;
+        try {
+            const tokens = await refreshAuth({ refreshToken: refreshToken.value });
+            applyTokens(tokens);
+            return true;
+        } catch (e) {
+            const err = e as AxiosError;
+            if (err?.status && err.status >= 400) await logout();
+            return false;
+        }
+    };
 
-                if (err?.status && err.status >= 400) {
-                    if (refreshToken.value) {
-                        try {
-                            const refreshResponse = await refreshAuth({
-                                refresh: refreshToken.value,
-                            });
+    const checkAuth = async (): Promise<boolean> => {
+        // No access token — try to bootstrap from the refresh token.
+        if (!token.value) {
+            return await tryRefresh();
+        }
 
-                            updateToken(refreshResponse.access);
-                            updateRefreshToken(refreshResponse.refresh);
+        // When the verify step is disabled, a present token is trusted; the 401
+        // response interceptor handles lazy expiry.
+        if (!verifyStep) return true;
 
-                            return true;
-                        } catch (e) {
-                            const err = e as AxiosError;
-
-                            if (err?.status && err.status >= 400) {
-                                await logout();
-                            }
-
-                            return false;
-                        }
-                    } else {
-                        await logout();
-                        return false;
-                    }
-                }
-
-                return false;
-            }
-        } else {
-            if (refreshToken.value) {
-                try {
-                    const refreshResponse = await refreshAuth({
-                        refresh: refreshToken.value,
-                    });
-
-                    updateToken(refreshResponse.access);
-                    updateRefreshToken(refreshResponse.refresh);
-
-                    return true;
-                } catch (e) {
-                    const err = e as AxiosError;
-
-                    if (err?.status && err.status >= 400) {
-                        await logout();
-                    }
-
-                    return false;
-                }
-            } else {
-                await logout();
-                return false;
-            }
+        try {
+            await verify({ token: token.value });
+            return true;
+        } catch (e) {
+            const err = e as AxiosError;
+            if (err?.status && err.status >= 400) return await tryRefresh();
+            return false;
         }
     };
 
@@ -120,6 +86,7 @@ const useAuth = () => {
         refreshToken,
         updateRefreshToken,
         updateToken,
+        applyTokens,
         logout,
         isLoggedIn,
         checkAuth,

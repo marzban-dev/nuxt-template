@@ -1,119 +1,146 @@
 import { defineNuxtModule, useLogger } from "@nuxt/kit";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, extname, join, relative, resolve } from "node:path";
 import chokidar from "chokidar";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+/** Map of `FOLDER_KEY -> { ASSET_KEY -> public path }`. */
+type AssetsMap = Record<string, Record<string, string>>;
 
-export default defineNuxtModule({
+type ModuleOptions = {
+    /**
+     * Folders (relative to the project root) to scan for assets. Each folder
+     * becomes a top-level key in the generated `ASSETS` constant.
+     */
+    assets: string[];
+    /** File (relative to the project root) the `ASSETS` constant is written to. */
+    output: string;
+    /** Debounce (ms) applied to regeneration while watching. Defaults to 100. */
+    debounce: number;
+};
+
+export default defineNuxtModule<ModuleOptions>({
     meta: {
         name: "assets-generator-module",
-        configKey: "assetsGeneratorModule"
+        configKey: "assetsGeneratorModule",
     },
 
     defaults: {
-        // assets: ["../public/img", "../public/video"],
-        // output: "../constants/assets.ts"
+        assets: [],
+        output: "",
+        debounce: 100,
     },
 
     setup(moduleOptions, nuxt) {
-        if (moduleOptions?.assets) {
-            const logger = useLogger("assets-generator");
+        // The module is opt-in: with no folders to scan there is nothing to do.
+        if (!moduleOptions.assets?.length) return;
 
-            // resolve relative paths to project root
-            const assetsList = Array.from(new Set([...moduleOptions.assets]));
+        const logger = useLogger("assets-generator");
 
-            const assetFolders = assetsList.map((assetFolder: string) =>
-                path.resolve(nuxt.options.rootDir, assetFolder)
-            );
-
-            const output = path.resolve(nuxt.options.rootDir, moduleOptions.output);
-
-            /**
-             * Ensure that all required directories exist
-             */
-            const ensureDirExists = (dirPath: string) => {
-                if (!fs.existsSync(dirPath)) {
-                    fs.mkdirSync(dirPath, { recursive: true });
-                    logger.info(`Created missing directory: ${dirPath}`);
-                }
-            };
-
-            // Make sure asset folders exist
-            assetFolders.forEach(ensureDirExists);
-
-            const watcher = chokidar.watch(assetFolders, {
-                ignored: /^\./,
-                persistent: false,
-                ignoreInitial: true
-            });
-
-            const generate = () => {
-                const assetsMap: Record<any, any> = {};
-
-                assetFolders.forEach((assetFolder: string) => {
-                    const extractFilePaths = (directory: string) => {
-                        const files = fs.readdirSync(directory);
-                        const relativeDirectoryPath = "/" + path.relative("public", directory);
-
-                        files.forEach((file) => {
-                            if (!file.startsWith(".")) {
-                                if (file.includes(".")) {
-                                    const key = path.basename(file, path.extname(file)).toUpperCase().replaceAll("-", "_");
-                                    const assetFolderKey = path.basename(assetFolder).toUpperCase();
-
-                                    if (!Object.hasOwn(assetsMap, assetFolderKey)) {
-                                        assetsMap[assetFolderKey] = {};
-                                    }
-
-                                    if (Object.hasOwn(assetsMap[assetFolderKey], key)) {
-                                        logger.error(`Assets conflicted. => ${relativeDirectoryPath}/${file}`);
-                                        watcher.close();
-                                        process.exit(0);
-                                    } else {
-                                        assetsMap[assetFolderKey][key] = `${relativeDirectoryPath}/${file}`;
-                                    }
-                                } else {
-                                    extractFilePaths(`${directory}/${file}`);
-                                }
-                            }
-                        });
-                    };
-
-                    extractFilePaths(assetFolder);
-                });
-
-                let assetsFileTemplate = "export const ASSETS = {";
-
-                for (const folderKey of Object.keys(assetsMap)) {
-                    assetsFileTemplate += ` ${folderKey} : { `;
-
-                    for (const fileKey of Object.keys(assetsMap[folderKey])) {
-                        assetsFileTemplate += ` ${fileKey} : '${assetsMap[folderKey][fileKey]}',`;
-                    }
-
-                    assetsFileTemplate += `},`;
-                }
-
-                assetsFileTemplate += "}";
-
-                fs.writeFileSync(output, assetsFileTemplate);
-
-                logger.box("Assets generated successfully.");
-            };
-
-            generate();
-
-            watcher.on("all", () => {
-                generate();
-            });
-
-            nuxt.hook("close", async () => {
-                await watcher.close();
-            });
+        if (!moduleOptions.output) {
+            logger.error("`assetsGeneratorModule.output` is required when `assets` are provided.");
+            return;
         }
 
-    }
+        const publicDir = resolve(nuxt.options.rootDir, "public");
+        const output = resolve(nuxt.options.rootDir, moduleOptions.output);
+
+        // Resolve + de-duplicate the requested asset folders.
+        const assetFolders = Array.from(new Set(moduleOptions.assets)).map((folder) =>
+            resolve(nuxt.options.rootDir, folder),
+        );
+
+        const ensureDirExists = (dirPath: string) => {
+            if (!existsSync(dirPath)) {
+                mkdirSync(dirPath, { recursive: true });
+                logger.info(`Created missing directory: ${dirPath}`);
+            }
+        };
+
+        assetFolders.forEach(ensureDirExists);
+        ensureDirExists(dirname(output));
+
+        /** Turn an absolute file path into a web-served public path (always POSIX). */
+        const toPublicPath = (absolutePath: string) =>
+            "/" + relative(publicDir, absolutePath).split("\\").join("/");
+
+        /** Derive an `UPPER_SNAKE_CASE` key from a file name, dropping its extension. */
+        const toAssetKey = (fileName: string) =>
+            basename(fileName, extname(fileName)).toUpperCase().replaceAll("-", "_");
+
+        /**
+         * Recursively collect every asset file under `folder`.
+         * Returns `null` when a key collision is detected (already logged).
+         */
+        const collectAssets = (folder: string): Record<string, string> | null => {
+            const entries: Record<string, string> = {};
+
+            const walk = (directory: string): boolean => {
+                for (const name of readdirSync(directory)) {
+                    if (name.startsWith(".")) continue;
+
+                    const fullPath = join(directory, name);
+
+                    if (statSync(fullPath).isDirectory()) {
+                        if (!walk(fullPath)) return false;
+                        continue;
+                    }
+
+                    const key = toAssetKey(name);
+
+                    if (Object.hasOwn(entries, key)) {
+                        logger.error(
+                            `Asset name conflict for "${key}" at ${toPublicPath(fullPath)}. Rename the file to resolve it.`,
+                        );
+                        return false;
+                    }
+
+                    entries[key] = toPublicPath(fullPath);
+                }
+
+                return true;
+            };
+
+            return walk(folder) ? entries : null;
+        };
+
+        const generate = () => {
+            const assetsMap: AssetsMap = {};
+
+            for (const folder of assetFolders) {
+                const entries = collectAssets(folder);
+
+                // A collision was reported; abort without clobbering the output file.
+                if (!entries) return;
+
+                assetsMap[basename(folder).toUpperCase()] = entries;
+            }
+
+            const fileContents =
+                "// This file is auto-generated by the assets-generator module. Do not edit it manually.\n" +
+                `export const ASSETS = ${JSON.stringify(assetsMap, null, 4)} as const;\n`;
+
+            writeFileSync(output, fileContents);
+            logger.success("Assets generated successfully.");
+        };
+
+        generate();
+
+        const watcher = chokidar.watch(assetFolders, {
+            ignored: (path) => basename(path).startsWith("."),
+            persistent: false,
+            ignoreInitial: true,
+        });
+
+        // Coalesce bursts of file-system events into a single regeneration.
+        let debounce: ReturnType<typeof setTimeout> | undefined;
+        watcher.on("all", () => {
+            clearTimeout(debounce);
+            debounce = setTimeout(generate, moduleOptions.debounce);
+        });
+
+        nuxt.hook("close", async () => {
+            clearTimeout(debounce);
+            await watcher.close();
+        });
+    },
 });

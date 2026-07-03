@@ -11,28 +11,23 @@ export default defineNuxtPlugin({
             baseURL: config.public.API_BASE_URL,
         });
 
-        axios.interceptors.request.use((config) => {
-            // Set locale for i18n
-            config.headers["Accept-Language"] = $i18n?.locale.value === "fa_ir" ? "fa" : $i18n?.locale.value;
-
-            // Set auth header
-            if (config.authorization && auth.token.value) {
-                config.headers.Authorization = `Bearer ${auth.token.value}`;
+        axios.interceptors.request.use((request) => {
+            // Send the active language as its primary subtag (e.g. "fa_ir" -> "fa").
+            const locale = $i18n?.locale.value;
+            if (locale) {
+                request.headers["Accept-Language"] = locale.split("_")[0];
             }
 
-            return config;
+            // Attach the bearer token for requests that opt in via `authorization`.
+            if (request.authorization && auth.token.value) {
+                request.headers.Authorization = `Bearer ${auth.token.value}`;
+            }
+
+            return request;
         });
 
-        axios.interceptors.response.use(
-            (response) => {
-                return response;
-            },
-            // async function (error: ApiError) {
-            //     if (process.env.NODE_ENV === "development") {
-            //     }
-            //     return Promise.reject(error);
-            // }
-        );
+        // Response errors are intentionally left to bubble up so tanstack's query /
+        // mutation caches (see tanstack.ts) can route them to the app callbacks.
 
         return {
             provide: {

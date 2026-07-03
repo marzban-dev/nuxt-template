@@ -5,32 +5,27 @@ import { useMutation } from "@tanstack/vue-query";
 // types
 
 export type RefreshAuthRequest = {
-    refresh: string;
-};
-
-export type RefreshAuthResponse = {
-    access: string;
-    refresh: string;
+    refreshToken: string;
 };
 
 const useRefreshAuth = () => {
     // state
 
     const { $axios: axios } = useNuxtApp();
-    const runtimeConfig = useRuntimeConfig();
-    const endpoint = runtimeConfig.public.authModule.endpoints.refresh;
+    const { path } = useAuthEndpoints();
+    const { buildRefreshBody, extractTokens } = useAuthAdapters();
 
     // methods
 
-    const handler = async (variables: RefreshAuthRequest) => {
-        const { data } = await axios.post(endpoint, variables, {
+    const handler = async (variables: RefreshAuthRequest): Promise<AuthTokens> => {
+        const { data } = await axios.post(path("refresh"), buildRefreshBody(variables.refreshToken), {
             authorization: false,
         });
 
-        return data;
+        return extractTokens(data);
     };
 
-    return useMutation<RefreshAuthResponse, ApiError, RefreshAuthRequest>({
+    return useMutation<AuthTokens, ApiError, RefreshAuthRequest>({
         mutationKey: ["refresh-token"],
         mutationFn: (variables) => handler(variables),
         meta: { handleError: false },

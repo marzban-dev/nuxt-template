@@ -2,34 +2,24 @@
 
 import { useMutation } from "@tanstack/vue-query";
 
-// types
-
-export type SignInRequest = SignInParams;
-
-export type SignInResponse = {
-    access: string;
-    refresh: string;
-};
-
 const useSignIn = () => {
     // state
 
-    const appConfig = useAppConfig();
     const { $axios: axios } = useNuxtApp();
-    const runtimeConfig = useRuntimeConfig();
-    const endpoint = runtimeConfig.public.authModule.endpoints.signin;
+    const { path } = useAuthEndpoints();
+    const { buildSignInBody, extractTokens } = useAuthAdapters();
 
     // methods
 
-    const handler = async (variables: SignInRequest) => {
-        const { data } = await axios.post<SignInResponse>(endpoint, variables, {
+    const handler = async (variables: SignInParams): Promise<AuthTokens> => {
+        const { data } = await axios.post(path("signin"), buildSignInBody(variables), {
             authorization: false,
         });
 
-        return data;
+        return extractTokens(data);
     };
 
-    return useMutation<SignInResponse, ApiError, SignInRequest>({
+    return useMutation<AuthTokens, ApiError, SignInParams>({
         mutationKey: ["sign-in"],
         mutationFn: (variables) => handler(variables),
         meta: { handleError: false },

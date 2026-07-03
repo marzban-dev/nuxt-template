@@ -5,7 +5,7 @@ import { useJwt } from "@vueuse/integrations/useJwt";
 
 // state
 
-const { token, refreshToken, updateToken, updateRefreshToken, logout, isLoggedIn } = useAuth();
+const { token, refreshToken, applyTokens, logout, isLoggedIn } = useAuth();
 const { refetch: refetchAccount } = useGetAccount();
 const { mutateAsync: developSignIn, isPending: isDevelopSignInPending } = useDevelopSignin();
 
@@ -13,10 +13,6 @@ const accessTokenValue = computed(() => unref(token) ?? "");
 const refreshTokenValue = computed(() => unref(refreshToken) ?? "");
 const { header: accessHeader, payload: accessPayload } = useJwt(accessTokenValue);
 const { header: refreshHeader, payload: refreshPayload } = useJwt(refreshTokenValue);
-
-const runtimeConfig = useRuntimeConfig();
-const otpInputsCount = runtimeConfig.public.authModule.otpCount;
-const otpInputsTimer = runtimeConfig.public.authModule.otpTimer;
 
 // computed
 
@@ -41,9 +37,8 @@ const signInHandler = () => {
     developSignIn(
         {},
         {
-            onSuccess: (response) => {
-                updateToken(response.access);
-                updateRefreshToken(response.refresh);
+            onSuccess: (tokens) => {
+                applyTokens(tokens);
             },
             onError: () => {},
         }
