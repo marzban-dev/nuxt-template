@@ -23,10 +23,6 @@ export default defineNuxtConfig({
     authModule: {
         signInPath: "/sign-in",
         endpoints: {
-            develop_token: {
-                name: "",
-                path: "/user/develop_token",
-            },
             logout: {
                 name: "",
                 path: "/user/logout",

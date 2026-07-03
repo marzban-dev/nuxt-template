@@ -18,7 +18,6 @@ type ModuleOptions = {
         verify: AuthEndpoint;
         logout: AuthEndpoint;
         profile: AuthEndpoint;
-        develop_token?: AuthEndpoint;
         update?: AuthEndpoint;
     };
     /** In-app route the auth middleware redirects to when a guard fails. */

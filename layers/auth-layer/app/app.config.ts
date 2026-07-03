@@ -68,7 +68,11 @@ declare module "@nuxt/schema" {
         /** Provide a custom storage strategy instead of the default cookies. */
         storage?: () => AuthStorage;
 
-        /** Bypass the network during local development and return tokens directly. */
+        /**
+         * Local-development sign-in. When provided, the devtools Auth panel shows
+         * a "Sign In" button that stores the returned tokens directly — no network
+         * call. Leave undefined to hide it.
+         */
         developSignIn?: () => AuthTokens | Promise<AuthTokens>;
         /** Called whenever a request fails with 401 before the user is logged out. */
         unauthorizedEvent?: (error: ApiError) => void;
