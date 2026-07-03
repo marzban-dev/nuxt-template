@@ -90,4 +90,18 @@ export default defineNuxtConfig({
             API_BASE_URL: process.env.API_BASE_URL || "http://localhost:8000",
         },
     },
+
+    vite: {
+        optimizeDeps: {
+            include: [
+                "@tanstack/vue-query",
+                "@unhead/schema-org/vue",
+                "@vue/devtools-core",
+                "@vue/devtools-kit",
+                "@vueuse/integrations/useJwt",
+                "axios",
+                "jwt-decode",
+            ],
+        },
+    },
 });

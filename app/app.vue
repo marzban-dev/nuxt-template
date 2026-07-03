@@ -2,6 +2,7 @@
 // imports
 
 import * as ui_locales from "@nuxt/ui/locale";
+import { VueQueryDevtools } from "@tanstack/vue-query-devtools";
 
 // states
 
@@ -45,7 +46,9 @@ useHead({
                 <NuxtPage />
             </AuthLayerWrapper>
 
-            <VueQueryDevtools dir="rtl" />
+            <ClientOnly>
+                <VueQueryDevtools dir="rtl" />
+            </ClientOnly>
         </UApp>
     </NuxtLayout>
 </template>

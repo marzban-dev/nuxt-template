@@ -3,6 +3,17 @@
 
 import { useJwt } from "@vueuse/integrations/useJwt";
 
+// helpers
+
+const toReadableDateString = (date: Date) => {
+    if (Number.isNaN(date.getTime())) return "-";
+
+    return new Intl.DateTimeFormat("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "medium",
+    }).format(date);
+};
+
 // state
 
 const { token, refreshToken, applyTokens, logout, isLoggedIn } = useAuth();
