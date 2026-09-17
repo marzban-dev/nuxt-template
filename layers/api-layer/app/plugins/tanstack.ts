@@ -4,6 +4,19 @@ import { VueQueryPlugin, QueryClient, hydrate, dehydrate, QueryCache, MutationCa
 import { defineNuxtPlugin, useState } from "#imports";
 import { AxiosError } from "axios";
 
+declare module "#app" {
+    interface NuxtApp {
+        $queryClient: QueryClient;
+    }
+}
+
+declare module "vue" {
+    interface ComponentCustomProperties {
+        $queryClient: QueryClient;
+    }
+}
+
+
 /** Default time (ms) a query result is considered fresh before refetching. */
 const DEFAULT_STALE_TIME = 5000;
 
