@@ -51,6 +51,24 @@
     --font-feature-ss09: "ss09";
     --font-feature-ss10: "ss10";
 
+    /* SHADOWS */
+    --shadow-soft: 0 8px 24px rgba(40, 70, 110, 0.06);
+    --shadow-floating: 0 12px 32px rgba(40, 70, 110, 0.08);
+
+    /* SEMANTIC COLORS */
+    --color-bg-soft: #F4F7FB;
+    --color-surface: #FFFFFF;
+    
+    --color-primary-action: #1677F2;
+    --color-primary-hover: #0F6DE5;
+    --color-primary-soft: #EAF3FF;
+
+    --color-text-primary: #161A22;
+    --color-text-secondary: #737B87;
+    --color-text-muted: #A0A7B2;
+
+    --color-border-subtle: #E8ECF2;
+
     /* BACKGROUND IMAGES */
     /* --bg-image-pattern-1: url("/img/pattern/pattern-1.png"); */
 

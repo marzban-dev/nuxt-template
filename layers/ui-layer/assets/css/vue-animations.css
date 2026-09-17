@@ -4,7 +4,9 @@
 
 .zoom-leave-active,
 .zoom-enter-active {
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    transition:
+        transform 0.3s ease-in-out,
+        opacity 0.3s ease-in-out;
 }
 
 .zoom-enter-to,
@@ -25,7 +27,9 @@
 
 .fade-leave-active,
 .fade-enter-active {
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    transition:
+        transform 0.3s ease-in-out,
+        opacity 0.3s ease-in-out;
 }
 
 .fade-enter-to,
@@ -44,7 +48,9 @@
 
 .fade-down-leave-active,
 .fade-down-enter-active {
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    transition:
+        transform 0.3s ease-in-out,
+        opacity 0.3s ease-in-out;
 }
 
 .fade-down-enter-to,
@@ -66,7 +72,9 @@
 .fade-right-to-left-leave-active,
 .fade-right-to-left-enter-active {
     transform-origin: bottom right;
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    transition:
+        transform 0.3s ease-in-out,
+        opacity 0.3s ease-in-out;
 }
 
 .fade-right-to-left-enter-to,
@@ -88,7 +96,9 @@
 .fade-right-leave-active,
 .fade-right-enter-active {
     transform-origin: right;
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    transition:
+        transform 0.3s ease-in-out,
+        opacity 0.3s ease-in-out;
 }
 
 .fade-right-enter-to,

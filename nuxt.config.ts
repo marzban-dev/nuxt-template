@@ -22,28 +22,6 @@ export default defineNuxtConfig({
 
     authModule: {
         signInPath: "/sign-in",
-        endpoints: {
-            logout: {
-                name: "",
-                path: "/user/logout",
-            },
-            profile: {
-                name: "",
-                path: "/user/profile",
-            },
-            refresh: {
-                name: "",
-                path: "/user/token/refresh",
-            },
-            signin: {
-                name: "",
-                path: "/user/token",
-            },
-            verify: {
-                name: "",
-                path: "/user/verify",
-            },
-        },
     },
 
     image: {

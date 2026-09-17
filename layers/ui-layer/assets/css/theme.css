@@ -1,9 +1,14 @@
 :root {
     /* NUXT UI BORDER RADIUS */
-    --ui-radius: 0.4rem;
+    --ui-radius: 1rem;
+
+    /* NUXT UI COLORS OVERRIDE FOR SOFT UI */
+    --ui-color-primary-50: #EAF3FF;
+    --ui-color-primary-500: #1677F2;
+    --ui-color-primary-600: #0F6DE5;
 }
 
-@theme {    
+@theme {
     /* NUXT UI PRIMARY COLORS */
     --color-primary: var(--ui-color-primary-500);
     --color-primary-50: var(--ui-color-primary-50);
