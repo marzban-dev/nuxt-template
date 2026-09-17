@@ -1,4 +1,6 @@
 import type { AxiosError } from "axios";
+import type { AuthTokens } from "../../types/types";
+import { useMutation } from "@tanstack/vue-query";
 
 const useAuth = () => {
     // state
@@ -6,11 +8,28 @@ const useAuth = () => {
     const runtimeConfig = useRuntimeConfig();
     const verifyStep = runtimeConfig.public.authModule.verifyStep;
 
-    const { mutateAsync: refreshAuth } = useRefreshAuth();
-    const { mutateAsync: verify } = useVerify();
-    const { mutateAsync: signOut } = useSignOut();
-
+    const { $authApi } = useNuxtApp();
     const { token, refreshToken } = useAuthStorage();
+
+    // internal lifecycle mutations
+    
+    const { mutateAsync: refreshAuth } = useMutation<AuthTokens, ApiError, { refreshToken: string }>({
+        mutationKey: ["refresh-token"],
+        mutationFn: (variables) => $authApi.refresh(variables.refreshToken),
+        meta: { handleError: false },
+    });
+
+    const { mutateAsync: verify } = useMutation<void, ApiError, { token: string }>({
+        mutationKey: ["verify-token"],
+        mutationFn: (variables) => $authApi.verify(variables.token),
+        meta: { handleError: false },
+    });
+
+    const { mutateAsync: signOut } = useMutation<void, ApiError, { refreshToken: string }>({
+        mutationKey: ["sign-out"],
+        mutationFn: (variables) => $authApi.logout(variables.refreshToken),
+        meta: { handleError: false },
+    });
 
     // methods
 
@@ -35,6 +54,9 @@ const useAuth = () => {
             refreshToken.value = undefined;
 
             await signOut({ refreshToken: currentRefreshToken });
+            if (reload) window.location.href = "/";
+        } else {
+            token.value = undefined;
             if (reload) window.location.href = "/";
         }
     };

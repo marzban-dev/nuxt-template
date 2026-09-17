@@ -16,12 +16,8 @@ const toReadableDateString = (date: Date) => {
 
 // state
 
-const appConfig = useAppConfig();
-
 const { token, refreshToken, applyTokens, logout, isLoggedIn } = useAuth();
 const { refetch: refetchAccount } = useGetAccount();
-
-const isDevelopSignInPending = ref(false);
 
 const accessTokenValue = computed(() => unref(token) ?? "");
 const refreshTokenValue = computed(() => unref(refreshToken) ?? "");
@@ -31,8 +27,6 @@ const { header: refreshHeader, payload: refreshPayload } = useJwt(refreshTokenVa
 // computed
 
 const todayText = computed(() => toReadableDateString(new Date()));
-
-const canDevelopSignIn = computed(() => !!appConfig.appAuth?.developSignIn);
 
 const tokenDetails = computed(() => {
     const accessExpDate = new Date((accessPayload.value?.exp ?? 0) * 1000);
@@ -48,19 +42,6 @@ const tokenDetails = computed(() => {
 });
 
 // methods
-
-const signInHandler = async () => {
-    if (!appConfig.appAuth?.developSignIn) return;
-
-    isDevelopSignInPending.value = true;
-
-    try {
-        const tokens = await appConfig.appAuth.developSignIn();
-        applyTokens(tokens);
-    } finally {
-        isDevelopSignInPending.value = false;
-    }
-};
 
 const signOutHandler = async () => {
     await logout();
@@ -110,27 +91,8 @@ const signOutHandler = async () => {
 
             <div class="flex items-center gap-4">
                 <button
-                    v-if="canDevelopSignIn"
-                    class="bg-blue-400 px-4 py-2 rounded-lg"
-                    :disabled="isDevelopSignInPending"
-                    :class="
-                        isDevelopSignInPending
-                            ? 'grayscale'
-                            : 'cursor-pointer active:translate-y-0.5 transition-transform'
-                    "
-                    @click="signInHandler"
-                >
-                    {{ isDevelopSignInPending ? "Loading..." : "Sign In With Develop Token" }}
-                </button>
-                <button
                     v-if="isLoggedIn"
-                    class="bg-rose-400 px-4 py-2 rounded-lg"
-                    :class="
-                        isDevelopSignInPending
-                            ? 'grayscale'
-                            : 'cursor-pointer active:translate-y-0.5 transition-transform'
-                    "
-                    :disabled="isDevelopSignInPending"
+                    class="bg-rose-400 px-4 py-2 rounded-lg cursor-pointer active:translate-y-0.5 transition-transform"
                     @click="signOutHandler"
                 >
                     Logout
